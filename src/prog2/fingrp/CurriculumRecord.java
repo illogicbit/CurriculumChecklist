@@ -19,8 +19,8 @@ import java.io.*;
  */
 
 public class CurriculumRecord {
-   private ArrayList<Course> templateRecord; //Possible use..? Remove later if not
-    private static ArrayList<Course> personalRecord;
+    private ArrayList<Course> templateRecord; //Possible use..? Remove later if not
+    private ArrayList<Course> personalRecord;
     private ArrayList<Course> compiledRecord;
 
     public CurriculumRecord(InputStream templateRecord, InputStream personalRecord) throws IOException, ClassNotFoundException{
@@ -113,7 +113,8 @@ public class CurriculumRecord {
     //INCOMPLETE
     public ArrayList<Course> FilterByYearAndTerm(int year, int term) {
         List<Course> filteredCourses = compiledRecord.stream()
-                .filter(course -> course.getYear() == year && course.getTerm() == term).collect(Collectors.toList());
+                .filter(course -> course.getYear() == year && course.getTerm() == term)
+                .toList();
 
         // Return the filtered list
         return (ArrayList<Course>) filteredCourses;
@@ -121,24 +122,21 @@ public class CurriculumRecord {
 
     public ArrayList<Course> FilterByCurriculum(boolean isAdditional){
         List<Course> filteredCourses = compiledRecord.stream()
-                .filter(e -> e.isAdditional() == isAdditional).collect(Collectors.toList());
+                .filter(e -> e.isAdditional() == isAdditional)
+                .toList();
         return (ArrayList<Course>) filteredCourses;
     }
 
-    public ArrayList<Course> SortByGrade(boolean descending){
+    public ArrayList<Course> SortByGrade(boolean descending) {
         List<Course> filteredCourses;
-        if(descending){
-            filteredCourses = compiledRecord.stream().filter(e -> e.getGrade() > 0).sorted((o1, o2) -> {
-                //If result is negative, returns o1.
-                //If result is positive returns o2.
-                return (int) (o2.getGrade() - o1.getGrade());
-            }).collect(Collectors.toList());
-        }else {
-            filteredCourses = compiledRecord.stream().filter(e -> e.getGrade() > 0).sorted((o1, o2) -> {
-                //If result is negative, returns o1.
-                //If result is positive returns o2.
-                return (int) (o1.getGrade() - o2.getGrade());
-            }).collect(Collectors.toList());
+        filteredCourses = compiledRecord.stream().filter(e -> e.getGrade() > 0).sorted((o1, o2) -> {
+            //If result is negative, returns o1.
+            //If result is positive returns o2.
+            return (int) (o1.getGrade() - o2.getGrade());
+        }).toList();
+
+        if (descending){
+            filteredCourses.reversed();
         }
         // Return the filtered list
         return (ArrayList<Course>) filteredCourses;
@@ -150,16 +148,14 @@ public class CurriculumRecord {
         return compiledRecord;
     }
 
-    public ArrayList<Course> SortByTitle(boolean descending){
+    public ArrayList<Course> SortByTitle(boolean descending) {
         List<Course> filteredCourses;
-        if(!descending){
-            filteredCourses = compiledRecord.stream().filter(e -> e.getTitle() != null)
-                    .sorted(Comparator.comparing(Course::getTitle))
-                    .collect(Collectors.toList());
-        }else{
-            filteredCourses = compiledRecord.stream().filter(e -> e.getTitle() != null)
-                    .sorted((o1, o2) -> o2.getTitle().compareTo(o1.getTitle()))
-                    .collect(Collectors.toList());
+        filteredCourses = compiledRecord.stream().filter(e -> e.getTitle() != null)
+                .sorted(Comparator.comparing(Course::getTitle))
+                .toList();
+
+        if (descending) {
+            filteredCourses = filteredCourses.reversed();
         }
 
         // Return the filtered list
