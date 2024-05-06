@@ -91,7 +91,29 @@ public class DevTest {
         )
             System.out.println(course);
 
+record.editCourse("CS 111", new Course.CourseBuilder().grade(900).title("DISCRETE STRUCTURES"));
 
+        System.out.println("------\nSorting by Year and Term\n-----");
+        for(int year = 1; year < 5; year++){
+            for (int term = 1; term < 4; term++){
+                for(Course course: record.FilterByYearAndTerm(year, term)) {
+                    System.out.println(course);
+                }
+            }
+            System.out.println("--------------");
+        }
+        //Test to filter and sort simutansimultaneously
+        System.out.println("------\nSorting by Curriculum\n-----");
+        record.editCourse("ADD 111", new Course.CourseBuilder().title("Test 1").year(1).term(1));
+        record.setFilter(record.FilterByYearAndTerm(1, 1));
+        for (Course course: record.SortByTitle(false)){
+            System.out.println(course);
+        }
+        
+        System.out.println("------\nSorting by Title\n-----");
+        for (Course course: record.SortByTitle(false)){
+            System.out.println(course);
+        }
     }
 
     static void generateTemplate(File templateLoc) {
