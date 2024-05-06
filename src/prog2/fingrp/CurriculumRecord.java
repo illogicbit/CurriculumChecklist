@@ -54,12 +54,12 @@ public class CurriculumRecord {
         templateRecord.close();
     }
 
-    public void setFilter(ArrayList<Course> courses){
+    public void setFilter(ArrayList<Course> courses) {
         personalRecord = courses;
     }
 
-    public static ArrayList<Course> getCourseList() {
-        return personalRecord;
+    public ArrayList<Course> getCourseList() {
+        return compiledRecord;
     }
 
     //Saving file only outputs files.
@@ -117,14 +117,14 @@ public class CurriculumRecord {
                 .toList();
 
         // Return the filtered list
-        return (ArrayList<Course>) filteredCourses;
+        return new ArrayList<Course>(filteredCourses);
     }
 
     public ArrayList<Course> FilterByCurriculum(boolean isAdditional){
         List<Course> filteredCourses = compiledRecord.stream()
                 .filter(e -> e.isAdditional() == isAdditional)
                 .toList();
-        return (ArrayList<Course>) filteredCourses;
+        return new ArrayList<Course>(filteredCourses);
     }
 
     public ArrayList<Course> SortByGrade(boolean descending) {
@@ -159,6 +159,6 @@ public class CurriculumRecord {
         }
 
         // Return the filtered list
-        return (ArrayList<Course>) filteredCourses;
+        return new ArrayList<Course>(filteredCourses);
     }
 }
