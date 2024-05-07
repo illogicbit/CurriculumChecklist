@@ -2,6 +2,7 @@ package prog2.fingrp;
 
 import java.util.*;
 import java.io.*;
+import java.util.stream.Collectors;
 
 /**
  * Development notes:
@@ -15,22 +16,30 @@ import java.io.*;
  *  - These are the changes made by the user. Refer to the mergeData function of the Course class
  *      to see what values constitute as a change.
  *  - This is what gets saved to the personal record .dat file using the saveChanges() function.
- *
+ * 3. Filtered Record
+ *  - Stores changes from the FilterByYearAndTerm function which allows us to manipulate a record without tampering with the original compiled record.
+ *  - Just for visual changes in the GUI.
+ * 4. General process for data manipulation and storage.
+ *  1. The first filter would be by year and term, which display courses for that year and term. The data from would be filtered out from the compiled record.
+ *  2. The next filter would be the filter by curriculum which also takes data from the template record and stores it in an array
+ *  3. The final filter would be the sorting functions, which uses data from the filter by curriculum and stores them in an array in the main method.
+ *  4. Any added courses will be stored and deleted permanently when the saveChanges function is invoked, but any deleted courses from the original template will be returned (Bug or Feature probably).
  */
 
 public class CurriculumRecord {
-    private ArrayList<Course> templateRecord; //Possible use..? Remove later if not
+    private ArrayList<Course> filterRecord; //Little bro finally has a use
     private ArrayList<Course> personalRecord;
     private ArrayList<Course> compiledRecord;
 
     public CurriculumRecord(InputStream templateRecord, InputStream personalRecord) throws IOException, ClassNotFoundException{
-        this.templateRecord = (ArrayList<Course>) new ObjectInputStream(templateRecord).readObject();
+        this.compiledRecord = (ArrayList<Course>) new ObjectInputStream(templateRecord).readObject();
         this.personalRecord = (ArrayList<Course>) new ObjectInputStream(personalRecord).readObject();
+        this.filterRecord = this.compiledRecord;
+
 
         //Early close the files. We won't be needing them anymore.
         templateRecord.close();
         personalRecord.close();
-        compiledRecord = this.templateRecord;
 
 
         //Find the first match of the courses with changes and merge their data with the existing data.
@@ -45,21 +54,40 @@ public class CurriculumRecord {
             }
             if (!matchFound) compiledRecord.add(personalData);
         }
+
     }
 
     public CurriculumRecord(InputStream templateRecord) throws IOException, ClassNotFoundException{
         this.compiledRecord = (ArrayList<Course>) new ObjectInputStream(templateRecord).readObject();
+        this.filterRecord = new ArrayList<Course>();
         this.personalRecord = new ArrayList<Course>();
 
         templateRecord.close();
     }
 
-    public void setFilter(ArrayList<Course> courses) {
-        personalRecord = courses;
+    //Sets the filter record
+    public void setFilterRecord(ArrayList<Course> courses) {
+        filterRecord = courses;
     }
 
+    //Gets the compiled record
     public ArrayList<Course> getCourseList() {
         return compiledRecord;
+    }
+
+    //Get the filtered list
+    public ArrayList<Course> getFilteredCourseList() {
+        return filterRecord;
+    }
+
+    //Returns a course from the record
+    public Course getCourse(String courseCode){
+        for (Course outputCourse:compiledRecord){
+            if(outputCourse.getCode().equals(courseCode)){
+                return outputCourse;
+            }
+        }
+        return null;
     }
 
     //Saving file only outputs files.
@@ -101,16 +129,18 @@ public class CurriculumRecord {
         }
         if (!matchFound) personalRecord.add(new Course(courseData));
     }
+
     public void deleteCourse(String courseCode) {
-        for (Course outputCourse : personalRecord) {
+        for (Course outputCourse : compiledRecord) {
             if (outputCourse.getCode().equals(courseCode)) {
+                filterRecord.remove(outputCourse);
                 personalRecord.remove(outputCourse);
+                compiledRecord.remove(outputCourse);
                 break;
             }
         }
 
     }
-    //INCOMPLETE
     public ArrayList<Course> FilterByYearAndTerm(int year, int term) {
         List<Course> filteredCourses = compiledRecord.stream()
                 .filter(course -> course.getYear() == year && course.getTerm() == term)
@@ -121,7 +151,7 @@ public class CurriculumRecord {
     }
 
     public ArrayList<Course> FilterByCurriculum(boolean isAdditional){
-        List<Course> filteredCourses = compiledRecord.stream()
+        List<Course> filteredCourses = getFilteredCourseList().stream()
                 .filter(e -> e.isAdditional() == isAdditional)
                 .toList();
         return new ArrayList<Course>(filteredCourses);
@@ -129,19 +159,18 @@ public class CurriculumRecord {
 
     public ArrayList<Course> SortByGrade(boolean descending) {
         List<Course> filteredCourses;
-        filteredCourses = compiledRecord.stream().filter(e -> e.getGrade() > 0).sorted((o1, o2) -> {
+        filteredCourses = getFilteredCourseList().stream().filter(e -> e.getGrade() > 0).sorted((o1, o2) -> {
             //If result is negative, returns o1.
             //If result is positive returns o2.
-            return (int) (o1.getGrade() - o2.getGrade());
-        }).toList();
+            if(!descending){
+                return (int) (o1.getGrade() - o2.getGrade());
+            }
+                return (int) (o2.getGrade() - o1.getGrade());
+        }).collect(Collectors.toList());
 
-        if (descending){
-            filteredCourses.reversed();
-        }
         // Return the filtered list
         return (ArrayList<Course>) filteredCourses;
     }
-
 
     public ArrayList<Course> SortByGPA(boolean descending){
 
@@ -150,9 +179,9 @@ public class CurriculumRecord {
 
     public ArrayList<Course> SortByTitle(boolean descending) {
         List<Course> filteredCourses;
-        filteredCourses = compiledRecord.stream().filter(e -> e.getTitle() != null)
+        filteredCourses = getFilteredCourseList().stream().filter(e -> e.getTitle() != null)
                 .sorted(Comparator.comparing(Course::getTitle))
-                .toList();
+                .collect(Collectors.toList());
 
         if (descending) {
             filteredCourses = filteredCourses.reversed();
