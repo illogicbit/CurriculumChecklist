@@ -1,46 +1,77 @@
-package CourseCheckerGUI;
+package prog2.fingrp.CourseCheckerGUI;
+import prog2.fingrp.Course;
+
 import javax.swing.*;
 import javax.swing.border.LineBorder;
+import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableModel;
+import javax.xml.crypto.Data;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
+import java.util.ArrayList;
+import java.util.Hashtable;
 
 /*
-* 28/04/2024
-*
-* V1 : implemented
-* Working Window
-* Icons
-* ComboBox
-* Table
-*
-*    !! TO WORK ON:
-* Action Listeners
-*       - for action listener, change the 3 buttons' color from panelColor to outBtn on hover
-* Table Data (array list)
-* Second Table for Incomplete
-* Sorting Icons and Editable Icons
-* Font import
-* Combo Box Design
-* Finalization of Colors and Design
-* Preferrably incorporate use of Graphics Environment for dual monitor (fucks up the panel sizing though idk what to do abt that too bad lol)
-* Loops and Exception Handling
-*
-*
-* */
+ * 28/04/2024
+ *
+ * V1 : implemented
+ * Working Window
+ * Icons
+ * ComboBox
+ * Table
+ *
+ *    !! TO WORK ON:
+ * Action Listeners
+ *       - for action listener, change the 3 buttons' color from panelColor to outBtn on hover
+ * Table Data (array list)
+ * Second Table for Incomplete
+ * Sorting Icons and Editable Icons
+ * Font import
+ * Combo Box Design
+ * Finalization of Colors and Design
+ * Preferrably incorporate use of Graphics Environment for dual monitor (fucks up the panel sizing though idk what to do abt that too bad lol)
+ * Loops and Exception Handling
+ *
+ * V2
+ * Added ComboBoxes for Filtering and Sorting functions
+ * Added JRadioButton for Filtering by curriculum function
+ * Converted JTable to DefaultTableModel for easier row manipulation
+ * Added a key-value pair system for ComboBoxes
+ * Added Accessors and Mutators
+ * Added a column to indicate remarks (passed or failed)
+ * Found Victoria's Secret
+ *
+ *
+ * */
 
-public class GUImain {
+public class GUImain implements ActionListener, TableModelListener, ItemListener {
+
+    public enum SORTING{
+        DEFAULT,
+        BY_TITLE_AZ,
+        BY_TITLE_ZA,
+        BY_GRADES_ASCENDING,
+        BY_GRADES_DESCENDING
+    }
     //Resources
-    ImageIcon icon = new ImageIcon(getClass().getClassLoader().getResource("CourseCheckerGUI/Icons/MainIcon.png"));
-
-    ImageIcon add = new ImageIcon(getClass().getClassLoader().getResource("CourseCheckerGUI/Icons/AddIcon.png"));
-    ImageIcon archive = new ImageIcon(getClass().getClassLoader().getResource("CourseCheckerGUI/Icons/ArchiveIcon.png"));
-    ImageIcon info = new ImageIcon(getClass().getClassLoader().getResource("CourseCheckerGUI/Icons/InfoIcon.png"));
+    ImageIcon icon = new ImageIcon("res/Icons/MainIcon.png");
+    ImageIcon add = new ImageIcon("res/Icons/AddIcon.png");
+    ImageIcon archive = new ImageIcon("res/Icons/ArchiveIcon.png");
+    ImageIcon info = new ImageIcon("res/Icons/InfoIcon.png");
 
     //J COMPS
     JFrame frame = new JFrame("Saint Louis University Checklist Manager");
 
     JTextField title = new JTextField("     My Checklist Manager");
+
+    //Key and pair hashtables for combo boxes
+    Hashtable<String, String> cbValues = new Hashtable<>(); //for Term and Year
+    Hashtable<String, Integer> sortValues = new Hashtable<String, Integer>();
 
     JPanel btnPanel = new JPanel();
     JPanel basePanel = new JPanel();
@@ -53,11 +84,32 @@ public class GUImain {
     JButton archiveCourse = new JButton(archive);
     JButton appInfo = new JButton(info);
 
+    JTable tbl;
+    DefaultTableModel tableModel;
+
+    //Sorting and Filters
     JComboBox termChoice = new JComboBox<>();
+    JComboBox sortChoice = new JComboBox<>();
+
+    //Edit and Add courses
+    JFrame editFrame = new JFrame();
+    JPanel panel = new JPanel( new GridLayout(2, 2) );
+    //In order of Title, Course, Units, Grade, Year, Term, ...
+    JTextField[] courseFields = {new JTextField(10), new JTextField(10), new JTextField(10),
+            new JTextField(10), new JTextField(10), new JTextField(10)};
+
+    JComboBox courseStatus = new JComboBox<>();
+    JComboBox courseList = new JComboBox<>();
+
+    JCheckBox isElective = new JCheckBox("Elective");
+
+    //In curriculum
+    JRadioButton curriculumCheckBox = new JRadioButton("Show additional courses only");
 
     // MEASUREMENTS
     Dimension btnSml = new Dimension(30,30);
     Dimension drpDm = new Dimension(330,30);
+    Dimension srtDrpDm = new Dimension(250,30);
     Dimension minSize = new Dimension(1200,590);
 
     // MAIN COLORS
@@ -89,6 +141,7 @@ public class GUImain {
         //set buttons (inside button panel)
         btnPanel.setLayout(btnL);
         btnPanel.setSize(120,60);
+        btnPanel.add(curriculumCheckBox);
         btnPanel.add(addCourse);
         btnPanel.add(archiveCourse);
         btnPanel.add(appInfo);
@@ -110,19 +163,75 @@ public class GUImain {
         appInfo.setBackground(bgColor);
         appInfo.setFocusPainted(false);
 
-        //ComboBOx
+        //Year and term comboBox
         termChoice.setPreferredSize(drpDm);
         termChoice.setBackground(bgColor);
         termChoice.setEditable(false);
         termChoice.setFocusable(false);
 
-        // set nav panel (where buttons are)
+        //Sorting comboBox
+        sortChoice.setPreferredSize(srtDrpDm);
+        sortChoice.setBackground(bgColor);
+        sortChoice.setEditable(false);
+        sortChoice.setFocusable(false);
 
+        //Create drop-down menu and stores a key and value pair in a hash table
+        //Potato code
+        for (int year = 1; year < 5; year++) {
+            for (int term = 1; term < 4; term++) {
+                String yrSuffix;
+                String tmSuffix;
+                String choice;
+                if(year == 4 && term == 3){
+                    break;
+                }
+                yrSuffix = switch (year) {
+                    case 1 -> "ST";
+                    case 2 -> "ND";
+                    case 3 -> "RD";
+                    default -> "TH";
+                };
+                tmSuffix = switch (term) {
+                    case 1 -> "ST";
+                    case 2 -> "ND";
+                    case 3 -> "RD";
+                    default -> "TH";
+                };
+                if(term < 3){
+                    choice = String.format("%d%s YEAR, %d%s SEMESTER", year, yrSuffix, term, tmSuffix);
+                }else{
+                    choice = String.format("%d%s YEAR, SHORT TERM", year, yrSuffix);
+                }
+                cbValues.put(choice, String.format("%d-%d", year, term));
+                termChoice.addItem(choice);
+            }
+        }
+
+        //Generate drop-down menu for status;
+        for (Course.STATUS status : Course.STATUS.values()) {
+            courseStatus.addItem(status);
+        }
+
+        //For the course list in the add/edit method
+        courseList.addItem("Additional Course");
+        //Creates the drop-down menu for sorting filter.
+        for(GUImain.SORTING sorting: GUImain.SORTING.values()){
+            sortChoice.addItem(sorting.name());
+        }
+
+        //Edit/Add course panel
+        editFrame = new JFrame();
+        editFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        editFrame.setLocationRelativeTo(null);
+
+
+
+        // set nav panel (where buttons are)
         navPanel.setLayout(navL);
         navPanel.setPreferredSize(new Dimension(1280, 60));
         navPanel.setBackground(panelColor);
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.weightx = 0.5;
+        gbc.weightx = 0.2;
         gbc.weighty = 0.333;
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -131,9 +240,12 @@ public class GUImain {
         gbc.gridwidth = 120;
         gbc.anchor = GridBagConstraints.WEST;
         navPanel.add(termChoice, gbc);
+        gbc.gridx = 1;
+        gbc.anchor = GridBagConstraints.CENTER;
+        navPanel.add(sortChoice, gbc);
 
         //This just overwrites the constraints might bbe okay for now????...
-        gbc.gridx = 1;
+        gbc.gridx = 3;
         gbc.gridy = 0;
         gbc.anchor = GridBagConstraints.EAST;
         gbc.insets = new Insets(0,0,0,30);
@@ -149,46 +261,13 @@ public class GUImain {
 
 
         // making table
-        AbstractTableModel cur = new AbstractTableModel() {
-            @Override
-            public int getRowCount() {
-                return 12;//size of ary list to
-            }
-            @Override
-            public int getColumnCount() {
-                return 5;
-            }
-            @Override
-            public String getColumnName(int columnIndex) {
-                switch (columnIndex){
-                    case 0: return "Units";
-                    case 1: return "Course Number";
-                    case 2: return "Course Description";
-                    case 3: return "Grade";
-                    case 4: return "Grade Point";
-                }
-                return null;
-            }
-            @Override
-            public boolean isCellEditable(int rowIndex, int columnIndex) {
-                return true;
-            }
-            @Override
-            public Object getValueAt(int rowIndex, int columnIndex) {
-                return null; // i think i2 data
-            }
-            @Override
-            public TableModelListener[] getTableModelListeners() {
-                return super.getTableModelListeners();
-            }
-        };
-        // supply with arrsy
-        // eg JTable(Object[][] rowData, Object[] columnNames)
-        JTable tbl = new JTable(cur) {
+        tableModel = new DefaultTableModel(new String[] {"Units", "Course Number", "Course Description", "Grade", "Grade Point Average", "Remarks"}, 0);
+        tbl = new JTable(tableModel){
             public Dimension getPreferredScrollableViewportSize() {
                 return new Dimension(1140,400);
             }
         };
+
 
         //table specifications
         JScrollPane jp = new JScrollPane(tbl); // viewport
@@ -197,8 +276,10 @@ public class GUImain {
         tbl.getColumnModel().getColumn(1).setPreferredWidth(300);
         tbl.getColumnModel().getColumn(2).setPreferredWidth(540);
         tbl.getColumnModel().getColumn(3).setPreferredWidth(119);
-        tbl.getColumnModel().getColumn(4).setPreferredWidth(200);
+        tbl.getColumnModel().getColumn(4).setPreferredWidth(119);
+        tbl.getColumnModel().getColumn(5).setPreferredWidth(200);
         tbl.setRowHeight(20);
+        tbl.setEnabled(false);
         tbl.setGridColor(lineColor);
         tbl.setBackground(panelColor);
         tbl.setForeground(fontColor);
@@ -220,20 +301,53 @@ public class GUImain {
         baseWrapperPanel.add(basePanel);
         basePanel.add(jp);
 
-        frame.setIconImage(icon.getImage());
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(1280, 720);
-        frame.setMinimumSize(minSize);
-        frame.getContentPane().setBackground(bgColor);
-        frame.add(mainPanel, BorderLayout.NORTH);
-        frame.add(baseWrapperPanel, BorderLayout.CENTER);
-        frame.setLocationRelativeTo(null);
-        frame.setResizable(true);
-        frame.setVisible(true);
+        editFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        editFrame.setIconImage(icon.getImage());
+        editFrame.setSize(1280, 720);
+        editFrame.setMinimumSize(minSize);
+        editFrame.getContentPane().setBackground(bgColor);
+        editFrame.add(mainPanel, BorderLayout.NORTH);
+        editFrame.add(baseWrapperPanel, BorderLayout.CENTER);
+        editFrame.setLocationRelativeTo(null);
+        editFrame.setResizable(true);
+        editFrame.setVisible(true);
+
     }
+    //Accessors and mutators
+    public JTable getTable(){return tbl;}
 
-    public static void main(String[] args) {
-            SwingUtilities.invokeLater(() -> new GUImain());
-        }
+    public JButton getAddCourse(){return addCourse;}
+
+    public JButton getArchiveCourse(){return archiveCourse;}
+
+    public JButton getAppInfo(){return appInfo;}
+
+    public JRadioButton getCurriculumCheckBox(){return curriculumCheckBox;}
+
+    public JTextField[] getEditFields(){return courseFields;}
+
+    public JComboBox getCourseStatus(){return courseStatus;}
+
+    public JComboBox getCourseList(){return courseList;}
+
+    public JFrame getEditFrame(){return editFrame;}
+
+    public JComboBox getTermChoice(){return termChoice;}
+
+    public JComboBox getSortChoice(){return sortChoice;}
+
+    public Hashtable getCbValues(){return cbValues;}
+
+    public JCheckBox getIsElective(){return isElective;}
+    public DefaultTableModel getTableModel(){return tableModel;}
+
+    @Override
+    public void actionPerformed(ActionEvent e) {}
+
+    @Override
+    public void tableChanged(TableModelEvent e) {}
+
+    @Override
+    public void itemStateChanged(ItemEvent e) {}
+
 }
-
