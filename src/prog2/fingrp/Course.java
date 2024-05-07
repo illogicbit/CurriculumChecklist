@@ -9,13 +9,15 @@ import java.util.*;
  * without needing multiple constructors for each parameter.
  */
 public class Course implements Serializable, Comparable<Course> {
+
     public enum STATUS {
         COMPLETE,
         NO_CREDIT,
         WITHDRAWL_WITH_PERMISSION,
         DROPPED,
-        NOT_TAKEN
+        NOT_TAKEN,
     }
+
 
     private String code = "N/A";
     private String title = "N/A";
@@ -228,11 +230,17 @@ public class Course implements Serializable, Comparable<Course> {
         }
 
         public CourseBuilder term(int term) {
+            if (term < 1 || term > 3) {
+                throw new RuntimeException("Invalid term number");
+            }
             this.term = term;
             return this;
         }
 
         public CourseBuilder year(int year) {
+            if (year < 1 || year > 4) {
+                throw new RuntimeException("Invalid year number");
+            }
             this.year = year;
             return this;
         }
