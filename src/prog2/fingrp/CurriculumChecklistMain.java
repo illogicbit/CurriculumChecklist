@@ -3,6 +3,8 @@ import prog2.fingrp.CourseCheckerGUI.GUImain;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.*;
 import java.util.*;
 
@@ -45,10 +47,40 @@ public class CurriculumChecklistMain {
     public static void run() throws IOException, ClassNotFoundException {
 
         //Generate template, save, and a new record manager object
-        File template = new File("res/CS_template.dat");
-        File save = new File("res/test.dat");
-        generateTemplate(new File("res/CurriculumTemplate.txt"));
-        record = new CurriculumRecord(new FileInputStream(template), new FileInputStream(save));
+        File template = new File("res/cur_template.dat");
+        File save = new File("res/personal_record.dat");
+        File txtTemplate = new File("res/CurriculumTemplate.txt");
+
+        //Nno existing template dat file exists. Create a new one.
+        if (!template.exists()){
+            generateTemplate(txtTemplate);
+        }
+
+        if (!save.exists()){
+            record = new CurriculumRecord(new FileInputStream(template));
+        } else {
+            record = new CurriculumRecord(new FileInputStream(template), new FileInputStream(save));
+        }
+
+        //Save changes on application close.
+        gui.getEditFrame().addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                try {
+                    record.saveChanges(new FileOutputStream(save));
+                    e.getWindow().dispose();
+                } catch (IOException err){
+                    int option = JOptionPane.showConfirmDialog(gui.getEditFrame(),"Cannot access save file! Changes will be lost.\n Do you still wish to exit?","Error!",
+                            JOptionPane.OK_CANCEL_OPTION);
+                    switch (option){
+                        case JOptionPane.OK_OPTION:
+                            e.getWindow().dispose();
+                        default:
+                            return;
+                    }
+                }
+            }
+        });
 
         //Instantiate the table model
         tableModel = gui.getTableModel();
@@ -146,12 +178,12 @@ public class CurriculumChecklistMain {
             });
 
             //Generates a JOptionPane using the fields array and updates the table if changes were made
-            int result = JOptionPane.showConfirmDialog(gui.getEditFrame(), fields, "Create a Course", JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE);
+            int result = JOptionPane.showConfirmDialog(gui.getEditFrame(), fields, "Create/Edit a Course", JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE);
 
             try{
                 //Creates a new Course using the data
                 if(result == JOptionPane.OK_OPTION) {
-                    record.editCourse(editFields[0].getText(), new Course.CourseBuilder().code(editFields[0].getText()).
+                    record.editCourse((String) gui.getCourseList().getSelectedItem(), new Course.CourseBuilder().code(editFields[0].getText()).
                             title(editFields[1].getText()).units(Integer.parseInt(editFields[2].getText()))
                             .grade(Float.parseFloat(editFields[3].getText())).year(Integer.parseInt(editFields[4].getText())).
                             term(Integer.parseInt(editFields[5].getText())).status((Course.STATUS) gui.getCourseStatus().getSelectedItem()).electiveStatus(gui.getIsElective().isSelected()));
@@ -214,7 +246,7 @@ public class CurriculumChecklistMain {
             grade = (course.getStatus() == Course.STATUS.COMPLETE) ? course.getGrade() : course.getStatus();
             gpa = (course.getStatus() == Course.STATUS.COMPLETE) ? map.get(map.floorKey((Float) grade)) : "";
 
-            tableModel.addRow(new Object[]{course.getUnits(), course.getCode(), course.getTitle(), grade, gpa,
+            tableModel.addRow(new Object[]{course.getUnits(), course.getDisplayCode(), course.getTitle(), grade, gpa,
                     (course.getStatus() == Course.STATUS.COMPLETE) ? ((course.getGrade() != null && course.getGrade() >= 75 && course.getGrade() > 0.00) ? "Passed" : "Failed") : ""});
         }
 
@@ -223,7 +255,7 @@ public class CurriculumChecklistMain {
         temporaryRecords = record.getFilteredCourseList();
 
         //Auto-save; remove if planning to use manual sav.
-        try {record.saveChanges(new FileOutputStream("res/test.dat"));
+        try {record.saveChanges(new FileOutputStream("res/personal_record_bak.dat"));
         }catch (IOException e){
             JOptionPane.showMessageDialog(null, e.getMessage());
         }
@@ -261,7 +293,7 @@ public class CurriculumChecklistMain {
             e.printStackTrace();
         }
 
-        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream("res/CS_template.dat"))) {
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream("res/cur_template.dat"))) {
             out.writeObject(templateList);
         } catch (IOException e) {
             e.printStackTrace();

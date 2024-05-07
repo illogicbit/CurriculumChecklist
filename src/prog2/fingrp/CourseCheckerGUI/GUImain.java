@@ -64,9 +64,6 @@ public class GUImain implements ActionListener, TableModelListener, ItemListener
     ImageIcon archive = new ImageIcon("res/Icons/ArchiveIcon.png");
     ImageIcon info = new ImageIcon("res/Icons/InfoIcon.png");
 
-    //J COMPS
-    JFrame frame = new JFrame("Saint Louis University Checklist Manager");
-
     JTextField title = new JTextField("     My Checklist Manager");
 
     //Key and pair hashtables for combo boxes
@@ -93,7 +90,6 @@ public class GUImain implements ActionListener, TableModelListener, ItemListener
 
     //Edit and Add courses
     JFrame editFrame = new JFrame();
-    JPanel panel = new JPanel( new GridLayout(2, 2) );
     //In order of Title, Course, Units, Grade, Year, Term, ...
     JTextField[] courseFields = {new JTextField(10), new JTextField(10), new JTextField(10),
             new JTextField(10), new JTextField(10), new JTextField(10)};
@@ -283,9 +279,9 @@ public class GUImain implements ActionListener, TableModelListener, ItemListener
         tbl.setGridColor(lineColor);
         tbl.setBackground(panelColor);
         tbl.setForeground(fontColor);
-        //table font tbc when data is imoportwed...
+        //table font tbc when data is imported...
 
-        // basepanel
+        // base panel
         GridBagConstraints gbbc = new GridBagConstraints();
         gbbc.gridx = 0;
         gbbc.gridy = 0;
@@ -301,7 +297,7 @@ public class GUImain implements ActionListener, TableModelListener, ItemListener
         baseWrapperPanel.add(basePanel);
         basePanel.add(jp);
 
-        editFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        editFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         editFrame.setIconImage(icon.getImage());
         editFrame.setSize(1280, 720);
         editFrame.setMinimumSize(minSize);
@@ -311,6 +307,7 @@ public class GUImain implements ActionListener, TableModelListener, ItemListener
         editFrame.setLocationRelativeTo(null);
         editFrame.setResizable(true);
         editFrame.setVisible(true);
+        editFrame.setTitle("Saint Louis University Checklist Manager");
 
     }
     //Accessors and mutators

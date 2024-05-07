@@ -44,7 +44,7 @@ public class Course implements Serializable, Comparable<Course> {
             return code;
         } else {
             //If is elective and not complete, change code to have no number component.
-            return code.replaceAll("\s?[0-9]$", "");
+            return code.replaceAll("\s?[0-9]+$", "");
         }
     }
 
